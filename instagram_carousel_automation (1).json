@@ -1,0 +1,493 @@
+{
+  "name": "instagram_carousel_automation",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 18 * * 1,4"
+            }
+          ]
+        }
+      },
+      "id": "0e4b2ab5-b7d0-49e3-9788-48708d22fb0b",
+      "name": "Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "17fdb491-3eaa-4370-b87a-4c7b8c33ca8d",
+              "name": "sheetId",
+              "value": "1vnN2Ki8huN3ng87Tc0FlLm1WETkWYIuBFiF9pCYTYOQ",
+              "type": "string"
+            },
+            {
+              "id": "90c4de10-2aa3-4a76-91d5-97752eca76ce",
+              "name": "sheetTab",
+              "value": "1vnN2Ki8huN3ng87Tc0FlLm1WETkWYIuBFiF9pCYTYOQ",
+              "type": "string"
+            },
+            {
+              "id": "3f719058-290b-458b-b948-ee2369ea33e2",
+              "name": "pexelsKey",
+              "value": "2QWiIOfbLp8fucOFgn1Y1yyE7twE0m4R1IgajCRBfm1ARRLxXgXAHSPK",
+              "type": "string"
+            },
+            {
+              "id": "94212cda-9052-4e24-8dbe-762e68ba269a",
+              "name": "zernioKey",
+              "value": "sk_fde62f686b05df5e9c9e379bc63694afb683468d79048b41ff96b2d8cb7761d3",
+              "type": "string"
+            },
+            {
+              "id": "d38e5452-b0d4-4323-97bb-454926ba4339",
+              "name": "zernioAccountId",
+              "value": "6ad426189231336434aab797",
+              "type": "string"
+            },
+            {
+              "id": "ede2db38-b828-429c-b9d5-32e16e7cff11",
+              "name": "musicFolderId",
+              "value": "PASTE_DRIVE_MUSIC_FOLDER_ID",
+              "type": "string"
+            },
+            {
+              "id": "2a1dcd61-1c8c-4d97-b03d-75da4c332f2f",
+              "name": "workDir",
+              "value": "C:\\carousel_work",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "90e72111-8a67-4f84-ba6c-cc070ac0c55c",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        224,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Config').first().json.sheetId }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1vnN2Ki8huN3ng87Tc0FlLm1WETkWYIuBFiF9pCYTYOQ/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": []
+        },
+        "options": {}
+      },
+      "id": "fbc241ef-9cf2-47c5-b109-e1aea3eddbe0",
+      "name": "Google Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        448,
+        0
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "slXqmHP1UHUhMKo1",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(i => i.json);\nconst free = rows.filter(r => String(r.used || '').trim().toUpperCase() !== 'TRUE' && r.hook && r.quote1);\nif (!free.length) throw new Error('Sheet me koi unused carousel row nahi bachi (used != TRUE wali row chahiye)');\nreturn [{ json: { ...free[0] } }];"
+      },
+      "id": "6a005ba3-13bb-4568-8255-784f50a9bbca",
+      "name": "Pick Quote",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://api.pexels.com/v1/search",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "query",
+              "value": "={{ $json.visual_keyword || 'dark city night' }}"
+            },
+            {
+              "name": "per_page",
+              "value": "4"
+            },
+            {
+              "name": "page",
+              "value": "={{ Math.floor(Math.random()*3)+1 }}"
+            },
+            {
+              "name": "orientation",
+              "value": "portrait"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ $('Config').first().json.pexelsKey }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "47b689d0-a7de-4f56-a836-ffb43c3cc5bc",
+      "name": "Pexels Search",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Aap yahan apni 3 pasandeeda music files ki IDs aur names daal dein\nconst musicFiles = [\n  { id: '1lcnAuIwiS6f87y4z8TY2_OQzjOpkD0SR', name: 'Song 1.mp3' },\n  { id: '1tAD1qqMBk4XkHgl76wCRtAfsvpDAwKTU', name: 'Song 2.mp3' },\n  { id: '1Oj0rkvmaaI9GSx3XdOmJTVVjO1EnoesG', name: 'Song 3.mp3' }\n];\n\n// Agar list khali ho toh error throw karega\nif (!musicFiles.length) {\n  throw new Error('Koi music file available nahi hai');\n}\n\n// Teeno me se randomly aik file choose karega\nconst f = musicFiles[Math.floor(Math.random() * musicFiles.length)];\n\nreturn [{ json: { fileId: f.id, name: f.name } }];"
+      },
+      "id": "993b9c28-d9da-44b5-8974-c9b47a83160d",
+      "name": "Choose Music",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1328,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.fileId }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "2030b89d-45ca-4bb5-a755-d85803511d1d",
+      "name": "Download Song",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1552,
+        0
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "fUi1vLz6yK34eaCW",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const cfg = $('Config').first().json;\nconst q = $('Pick Quote').first().json;\nconst photos = ($('Pexels Search').first().json.photos || []).map(p => p.src.original || p.src.large2x);\nif (!photos.length) throw new Error('Pexels se koi photo nahi mili: visual_keyword change karo');\nconst urls = [0, 1, 2, 3].map(i => photos[i % photos.length]);\n\nfunction wrap(text, width) {\n  const words = String(text || '').trim().split(/\\s+/);\n  const lines = []; let cur = '';\n  for (const w of words) {\n    if ((cur + ' ' + w).trim().length > width && cur) { lines.push(cur); cur = w; }\n    else cur = (cur + ' ' + w).trim();\n  }\n  if (cur) lines.push(cur);\n  return lines.join('\\n');\n}\nconst b64 = s => Buffer.from(s, 'utf8').toString('base64');\nconst rnd = (a, b) => a + Math.random() * (b - a);\nconst clamp = (v, a, b) => Math.max(a, Math.min(b, v));\n\n// har quote ke shuru aur akhir me \" lazmi\nconst stripQ = s => String(s || '').trim().replace(/^[\"'\\u201C\\u201D\\u2018\\u2019]+|[\"'\\u201C\\u201D\\u2018\\u2019]+$/g, '').trim();\nconst quoted = s => '\"' + stripQ(s) + '\"';\n\n// Slide 3 ki yellow italic line: uncomfortable feel (id ke hisab se rotate)\nconst uncomfortable = [\n  '— Some truths cost you peace.',\n  '— You felt that. Don\\'t pretend.',\n  '— It hurts because it\\'s true.',\n  '— Now you can\\'t unsee it.',\n  '— You will remember this at 3 AM.',\n  '— You already knew this.',\n  '— Sit with that discomfort.',\n  '— You read it twice, didn\\'t you?',\n  '— That one was meant for you.',\n  '— Nobody warned you. We did.'\n];\nconst seed = Number(q.id) || Math.floor(Math.random() * 1000);\nconst sign = uncomfortable[seed % uncomfortable.length];\n\n// ---- Slide 1 hook: energetic. Bada, CAPS, akhri line yellow, aur \"...\" taake swipe karne ka dil kare ----\nlet hook = String(q.hook || '').trim().toUpperCase();\nif (!/[.!?\\u2026]$/.test(hook)) hook += '...';\nconst hookLines = wrap(hook, 14).split('\\n');\n\n// text = white hissa, extra = yellow hissa (extra me pehle blank lines taake wahi jagah par baithe)\n// layout = height/width ka andaza; fixedY = text ki top y fix (do hisse align rakhne ke liye)\n// pos: left = x 90, mid = center. ff = font width factor\nconst slides = [\n  { text: hookLines.slice(0, -1).join('\\n'),\n    extra: '\\n'.repeat(hookLines.length - 1) + hookLines[hookLines.length - 1],\n    layout: hookLines.join('\\n'), exb: 2, size: 96, font: 'impact', sign: '', pos: 'left', ff: 0.5, fixedY: true },\n  { text: wrap(quoted(q.quote1), 24), extra: '', layout: wrap(quoted(q.quote1), 24), exb: 0,\n    size: 46, font: 'palai', sign: '', pos: 'mid', ff: 0.50 },\n  { text: wrap(quoted(q.quote2 || q.quote1), 24), extra: '', layout: wrap(quoted(q.quote2 || q.quote1), 24), exb: 0,\n    size: 46, font: 'palai', sign: sign, pos: 'left', ff: 0.50 },\n  { text: '', extra: wrap('Follow us for more', 13), layout: wrap('Follow us for more', 13), exb: 4,\n    size: 110, font: 'inkfree', sign: '', pos: 'mid', ff: 0.50, fixedY: true }\n];\n\n// text ki height/position ka andaza (line ko text se door rakhne ke liye)\nconst LH = size => Math.round(size * 1.25) + 18;\nslides.forEach(s => {\n  const ls = s.layout.split('\\n');\n  s.textH = ls.length * LH(s.size);\n  s.tt = (1350 - s.textH) / 2;\n  s.tb = s.tt + s.textH;\n  s.tw = Math.max(...ls.map(l => l.length)) * s.size * s.ff;\n  s.xs = s.pos === 'mid' ? (1080 - s.tw) / 2 : 90;\n});\nconst [s0, s1, s2, s3] = slides;\n\n// ---- Seam heights (left/right edge same, taake swipe par line connected lage) ----\n// y1: neeche (slide1 -> slide2), y2: upar (slide2 -> slide3), y3: neeche (slide3 -> slide4)\nconst lo = clamp(Math.max(s0.tb, s1.tb, s2.tb) + 80, 820, 960);\nconst y1 = rnd(lo, lo + 80);\nconst y2 = rnd(150, 280);\nconst y3lo = Math.min(Math.max(lo, s3.tb + 60), 1000);\nconst y3 = rnd(y3lo, y3lo + 60);\nconst cy = v => clamp(v, 100, 1100);\n\nconst P = [];\n// Slide 1: hook ke neeche se start, neeche lehraati hui right edge y1 tak\n{\n  const sb = clamp(s0.tb + 55, 200, 1060);\n  P.push([[90, sb], [300, sb + rnd(20, 60)], [560, (sb + y1) / 2 + rnd(0, 40)], [830, y1 + rnd(-30, 30)], [1080, y1]]);\n}\n// Slide 2: left-bottom se aaye -> text ke left se ghoomti hui UPAR -> text ke upar se guzar kar right edge y2 (upar)\n{\n  const xL = clamp(s1.xs - 70, 50, 130);\n  const ttop = clamp(s1.tt - 80, 120, 480);\n  P.push([\n    [0, y1],\n    [rnd(60, 110), cy(y1 - rnd(110, 170))],\n    [xL, cy((y1 + ttop) / 2 + rnd(-30, 30))],\n    [xL + rnd(0, 30), cy(ttop + rnd(40, 90))],\n    [rnd(300, 380), cy(ttop - rnd(40, 100))],\n    [rnd(640, 720), cy((ttop + y2) / 2 + rnd(-40, 40))],\n    [900, cy(y2 + rnd(-30, 30))],\n    [1080, y2]\n  ]);\n}\n// Slide 3: upar se aaye -> text ke upar se -> right side se ghoomti hui NEECHE -> right edge y3\n{\n  const ttop = clamp(s2.tt - 90, 120, 470);\n  const xR = clamp(90 + s2.tw + 90, 800, 1010);\n  P.push([\n    [0, y2],\n    [rnd(220, 300), Math.min(ttop, y2 + rnd(40, 110))],\n    [rnd(520, 620), Math.min(ttop, y2 + rnd(-20, 40))],\n    [xR, ttop + rnd(0, 40)],\n    [xR + rnd(-30, 20), (ttop + y3) / 2 + rnd(-30, 30)],\n    [xR - rnd(30, 90), y3 - rnd(40, 90)],\n    [1080, y3]\n  ]);\n}\n// Slide 4: neeche se aaye -> S-curve -> left se ghoom kar upar -> text ki taraf arrow\n{\n  const tipX = clamp(s3.xs - 40, 150, 400);           // arrow ki nok: text ke left edge ke bilkul pass\n  const tipY = s3.tt + Math.round(LH(s3.size) * 0.42); // pehli line ke beech ke barabar\n  const xL = clamp(tipX - 120, 35, 90);\n  const topY = Math.max(160, tipY - 150);\n  P.push([\n    [0, y3],\n    [260, y3 + 25],\n    [rnd(70, 110), y3 - rnd(90, 130)],\n    [xL, (y3 + topY) / 2 + rnd(-30, 30)],\n    [xL + rnd(0, 15), topY + rnd(0, 20)],\n    [xL + (tipX - xL) * 0.5, topY - rnd(10, 40)],\n    [tipX - 55, tipY - 45],     // nok se pehle wala point: isi se arrow ki direction banti hai\n    [tipX, tipY]\n  ]);\n}\n// pencil jaisa dusra halka stroke: thoda hilta hua (seam wale points nahi hilte)\nconst Pj = P.map(a => a.map(p => (p[0] <= 0 || p[0] >= 1080) ? p : [p[0] + rnd(-5, 5), p[1] + rnd(-5, 5)]));\nconst toStr = arr => arr.map(a => a.map(p => Math.round(p[0]) + ',' + Math.round(p[1])).join(';'));\nconst ptStr = toStr(P), ptStr2 = toStr(Pj);\n\nconst stamp = Date.now();\nconst dir = cfg.workDir;\nconst lines = [\n  \"$ErrorActionPreference='Stop'\",\n  \"$ProgressPreference='SilentlyContinue'\",\n  \"Add-Type -AssemblyName System.Drawing\",\n  \"$d='\" + dir + \"'\",\n  \"$r=\\\"$d\\\\run\\\"\",\n  \"New-Item -ItemType Directory -Force $r | Out-Null\",\n  \"Remove-Item \\\"$r\\\\*\\\" -Force -ErrorAction SilentlyContinue\",\n  \"Set-Location $r\",\n  \"'impact','palai','georgiai'|%{Copy-Item \\\"C:\\\\Windows\\\\Fonts\\\\$_.ttf\\\" \\\"$r\\\\$_.ttf\\\"}\",\n  \"if(Test-Path 'C:\\\\Windows\\\\Fonts\\\\Inkfree.ttf'){ Copy-Item 'C:\\\\Windows\\\\Fonts\\\\Inkfree.ttf' \\\"$r\\\\inkfree.ttf\\\" } else { Copy-Item 'C:\\\\Windows\\\\Fonts\\\\segoescb.ttf' \\\"$r\\\\inkfree.ttf\\\" }\",\n  \"$u=@(\" + urls.map(u => \"'\" + u + \"'\").join(',') + \")\",\n  \"$t=@(\" + slides.map(s => \"'\" + (s.text ? b64(s.text) : '') + \"'\").join(',') + \")\",\n  \"$ex=@(\" + slides.map(s => \"'\" + (s.extra ? b64(s.extra) : '') + \"'\").join(',') + \")\",\n  \"$exb=@(\" + slides.map(s => s.exb).join(',') + \")\",\n  \"$a=@(\" + slides.map(s => \"'\" + (s.sign ? b64(s.sign) : '') + \"'\").join(',') + \")\",\n  \"$s=@(\" + slides.map(s => s.size).join(',') + \")\",\n  \"$f=@(\" + slides.map(s => \"'\" + s.font + \"'\").join(',') + \")\",\n  \"$xp=@(\" + slides.map(s => \"'\" + (s.pos === 'mid' ? '(w-text_w)/2' : '90') + \"'\").join(',') + \")\",\n  \"$yp=@(\" + slides.map(s => \"'\" + (s.fixedY ? Math.round(s.tt) : '(h-text_h)/2') + \"'\").join(',') + \")\",\n  \"$pt=@(\" + ptStr.map(x => \"'\" + x + \"'\").join(',') + \")\",\n  \"$pt2=@(\" + ptStr2.map(x => \"'\" + x + \"'\").join(',') + \")\",\n  \"for($i=0;$i -lt 4;$i++){\",\n  \"  $n=$i+1\",\n  \"  Invoke-WebRequest -Uri $u[$i] -OutFile \\\"bg$n.jpg\\\"\",\n  \"  $vf=\\\"scale=1080:1350:force_original_aspect_ratio=increase,crop=1080:1350,eq=brightness=-0.3,drawbox=x=0:y=0:w=iw:h=ih:color=black@0.3:t=fill,vignette=PI/4\\\"\",\n  \"  $dt=\\\"fontfile=$($f[$i]).ttf:fontsize=$($s[$i]):line_spacing=18:shadowcolor=black@0.8:shadowx=4:shadowy=4:x=$($xp[$i]):y=$($yp[$i])\\\"\",\n  // white hissa\n  \"  if($t[$i] -ne ''){\",\n  \"    [IO.File]::WriteAllBytes(\\\"$r\\\\t$n.txt\\\",[Convert]::FromBase64String($t[$i]))\",\n  \"    $vf+=\\\",drawtext=$($dt):textfile=t$n.txt:fontcolor=white\\\"\",\n  \"  }\",\n  // yellow bold hissa (borderw se bold jaisa)\n  \"  if($ex[$i] -ne ''){\",\n  \"    [IO.File]::WriteAllBytes(\\\"$r\\\\e$n.txt\\\",[Convert]::FromBase64String($ex[$i]))\",\n  \"    $vf+=\\\",drawtext=$($dt):textfile=e$n.txt:fontcolor=0xFFD400:borderw=$($exb[$i]):bordercolor=0xFFD400\\\"\",\n  \"  }\",\n  // slide 3 ki yellow italic sign line (waisi hi)\n  \"  if($a[$i] -ne ''){\",\n  \"    [IO.File]::WriteAllBytes(\\\"$r\\\\a$n.txt\\\",[Convert]::FromBase64String($a[$i]))\",\n  \"    $vf+=\\\",drawtext=fontfile=georgiai.ttf:textfile=a$n.txt:fontcolor=0xFFD400:fontsize=36:x=90:y=h-250\\\"\",\n  \"  }\",\n  \"  & ffmpeg -y -loglevel error -i \\\"bg$n.jpg\\\" -vf $vf -frames:v 1 -q:v 2 \\\"base$n.jpg\\\"\",\n  \"  if($LASTEXITCODE -ne 0){ throw \\\"ffmpeg fail slide $n\\\" }\",\n  // ---- pencil jaisi mota curvy line draw ----\n  \"  $img=[System.Drawing.Image]::FromFile(\\\"$r\\\\base$n.jpg\\\")\",\n  \"  $g=[System.Drawing.Graphics]::FromImage($img)\",\n  \"  $g.SmoothingMode='AntiAlias'\",\n  \"  $pts=[System.Drawing.PointF[]]@($pt[$i].Split(';')|%{ $xy=$_.Split(','); New-Object System.Drawing.PointF([single]$xy[0],[single]$xy[1]) })\",\n  \"  $pts2=[System.Drawing.PointF[]]@($pt2[$i].Split(';')|%{ $xy=$_.Split(','); New-Object System.Drawing.PointF([single]$xy[0],[single]$xy[1]) })\",\n  \"  $pen=New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(235,255,212,0),11)\",\n  \"  $pen.StartCap='Round'; $pen.EndCap='Round'; $pen.LineJoin='Round'\",\n  \"  $pen2=New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(150,255,212,0),4)\",\n  \"  $pen2.StartCap='Round'; $pen2.EndCap='Round'; $pen2.LineJoin='Round'\",\n  \"  $g.DrawCurve($pen,$pts,0.6)\",\n  \"  $g.DrawCurve($pen2,$pts2,0.6)\",\n  \"  $br=New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(255,255,212,0))\",\n  \"  if($i -eq 0){ $g.FillEllipse($br,$pts[0].X-13,$pts[0].Y-13,26,26) }\",\n  // ---- akhri slide: arrow head (Follow us for more text ki taraf) ----\n  \"  if($i -eq 3){\",\n  \"    $e=$pts[$pts.Length-1]; $q=$pts[$pts.Length-2]\",\n  \"    $ang=[Math]::Atan2($e.Y-$q.Y,$e.X-$q.X)\",\n  \"    foreach($da in 0.5,-0.5){\",\n  \"      $ax=$e.X-65*[Math]::Cos($ang+$da); $ay=$e.Y-65*[Math]::Sin($ang+$da)\",\n  \"      $g.DrawLine($pen,[single]$e.X,[single]$e.Y,[single]$ax,[single]$ay)\",\n  \"    }\",\n  \"  }\",\n  \"  $enc=[System.Drawing.Imaging.ImageCodecInfo]::GetImageEncoders()|?{$_.MimeType -eq 'image/jpeg'}\",\n  \"  $ep=New-Object System.Drawing.Imaging.EncoderParameters(1)\",\n  \"  $ep.Param[0]=New-Object System.Drawing.Imaging.EncoderParameter([System.Drawing.Imaging.Encoder]::Quality,[long]95)\",\n  \"  $img.Save(\\\"$r\\\\slide$n.jpg\\\",$enc,$ep)\",\n  \"  $g.Dispose(); $img.Dispose(); $pen.Dispose(); $pen2.Dispose(); $br.Dispose()\",\n  \"}\",\n  \"if((Test-Path \\\"$d\\\\song.mp3\\\") -and ((Get-Item \\\"$d\\\\song.mp3\\\").Length -gt 10000)){ try { & ffmpeg -y -loglevel error -framerate 1/3.5 -i slide%d.jpg -i \\\"$d\\\\song.mp3\\\" -t 14 -vf format=yuv420p -r 30 -c:v libx264 -c:a aac -shortest preview.mp4 2>$null } catch {} }\",\n  \"$h=@{Authorization='Bearer \" + cfg.zernioKey + \"';'Content-Type'='application/json'}\",\n  \"$out=@()\",\n  \"for($i=1;$i -le 4;$i++){\",\n  \"  $body=(@{filename=\\\"c\" + stamp + \"_slide$i.jpg\\\";contentType='image/jpeg'}|ConvertTo-Json -Compress)\",\n  \"  $p=Invoke-RestMethod -Method Post -Uri 'https://zernio.com/api/v1/media/presign' -Headers $h -Body $body\",\n  \"  Invoke-RestMethod -Method Put -Uri $p.uploadUrl -InFile \\\"$r\\\\slide$i.jpg\\\" -ContentType 'image/jpeg' | Out-Null\",\n  \"  $out+=$p.publicUrl\",\n  \"}\",\n  \"$res=(@{urls=$out}|ConvertTo-Json -Compress)\",\n  \"Set-Content -Path \\\"$d\\\\result.txt\\\" -Value $res\",\n  \"Write-Output $res\"\n];\nconst script = lines.join('\\n');\n\n// Script ko file me likhte hain (command length ki limit khatam)\nconst fs = require('fs');\nfs.mkdirSync(dir, { recursive: true });\nconst ps1 = dir + '\\\\render.ps1';\nfs.writeFileSync(ps1, script, 'utf8');\n\nconst command = 'powershell -NoProfile -ExecutionPolicy Bypass -File \"' + ps1 + '\"';\nreturn [{ json: { command, scriptChars: script.length } }];"
+      },
+      "id": "35ff1676-bb0e-40ef-a9ab-2a29d9e269d9",
+      "name": "Prepare Render",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1984,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "command": "={{ $json.command }}"
+      },
+      "id": "fb82f087-f95c-4e9c-bdc9-f4424c16f184",
+      "name": "Execute Command",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        2208,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const fs = require('fs');\nconst path = require('path');\n\nconst res = $input.first().json;\nconst cfg = $('Config').first().json;\nconst q = $('Pick Quote').first().json;\n\n// 1. Pehle stdout se try karo, na mile to result.txt se padho\nlet line = (res.stdout || '').split(/\\r?\\n/).reverse().find(l => l.trim().startsWith('{'));\n\nif (!line) {\n  const f = path.join(cfg.workDir, 'result.txt');\n  if (!fs.existsSync(f)) {\n    throw new Error('stdout khali hai aur result.txt bhi nahi mili. Execute Command chala hi nahi. stderr: ' + (res.stderr || ''));\n  }\n  const ageMin = (Date.now() - fs.statSync(f).mtimeMs) / 60000;\n  if (ageMin > 10) {\n    throw new Error('result.txt purani hai (' + Math.round(ageMin) + ' min). Is baar Execute Command ne script chalayi hi nahi.');\n  }\n  line = fs.readFileSync(f, 'utf8').replace(/^\\uFEFF/, '').trim();\n}\n\nconst urls = JSON.parse(line).urls;\nif (!urls || urls.length < 4) throw new Error('4 image URLs nahi mile: ' + line);\n\nconst caption = q.caption || (q.hook + '\\n\\n' + q.quote1 + '\\n\\nFollow for more');\nreturn [{ json: { body: {\n  content: caption,\n  mediaItems: urls.map(u => ({ url: u, type: 'image' })),\n  platforms: [{ platform: 'instagram', accountId: cfg.zernioAccountId }],\n  publishNow: true\n} } }];"
+      },
+      "id": "81b32384-66ca-44e2-a510-4141f3ed01ee",
+      "name": "Build Post",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2432,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://zernio.com/api/v1/posts",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Config').first().json.zernioKey }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": {}
+      },
+      "id": "ee53f5c0-3db5-4e85-9492-c8d9044511fe",
+      "name": "Zernio Publish",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2640,
+        0
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "9GGBZ7vxrugf8q5o",
+          "name": "Zernio API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Config').first().json.sheetId }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "={{ $('Config').first().json.sheetTab }}"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "id": "88851b9f-b706-43dc-8208-a1c3516b105b",
+      "name": "Mark Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2864,
+        0
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "slXqmHP1UHUhMKo1",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const fs = require('fs');\nconst path = require('path');\n\n// 1. Folder setup (folder na ho to bana dega)\nconst workDir = $('Config').first().json.workDir || '/tmp';\nfs.mkdirSync(workDir, { recursive: true });\nconst filePath = path.join(workDir, 'song.mp3');\n\n// 2. Binary key dhoondo\nconst binaryItem = $input.first().binary;\nif (!binaryItem) {\n  throw new Error('Pichle node se koi binary (audio) data nahi mila!');\n}\nconst binaryKey = Object.keys(binaryItem)[0];\n\n// 3. Sahi tareeke se asli file buffer lo\nconst buffer = await this.helpers.getBinaryDataBuffer(0, binaryKey);\n\nif (!buffer || buffer.length === 0) {\n  throw new Error('Download Song ne 0 byte file di. Drive download me problem hai, Save Song me nahi.');\n}\n\n// 4. Save karo\nfs.writeFileSync(filePath, buffer);\n\nreturn [{\n  json: {\n    success: true,\n    savedPath: filePath,\n    sizeBytes: buffer.length\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1760,
+        0
+      ],
+      "id": "4571896e-bf04-498c-8874-411a78565678",
+      "name": "Code in JavaScript"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Trigger": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Google Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheet": {
+      "main": [
+        [
+          {
+            "node": "Pick Quote",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pick Quote": {
+      "main": [
+        [
+          {
+            "node": "Pexels Search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pexels Search": {
+      "main": [
+        [
+          {
+            "node": "Choose Music",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Choose Music": {
+      "main": [
+        [
+          {
+            "node": "Download Song",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Song": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Render": {
+      "main": [
+        [
+          {
+            "node": "Execute Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Command": {
+      "main": [
+        [
+          {
+            "node": "Build Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Post": {
+      "main": [
+        [
+          {
+            "node": "Zernio Publish",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Zernio Publish": {
+      "main": [
+        [
+          {
+            "node": "Mark Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Prepare Render",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "f692a2fe-6574-456d-8668-279142b5dd42",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "c10503a52ca2a7b925743c447eab6d23122381217294c41276eb53ba0c4486b0"
+  },
+  "nodeGroups": [],
+  "id": "wkfMVeMo8ywf7SxQ",
+  "tags": []
+}
