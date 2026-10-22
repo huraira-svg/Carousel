@@ -1,0 +1,70 @@
+name: Carousel Post
+
+on:
+  workflow_dispatch:          # cron-job.org yahi trigger karega
+  repository_dispatch:
+    types: [carousel]
+
+concurrency:
+  group: carousel
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    env:
+      N8N_VERSION: "latest"            # <- apne PC wala version likho, jaise 1.80.0
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"   # $env.ZERNIO_KEY kaam kare
+      NODES_EXCLUDE: "[]"                     # Execute Command node chalne do
+      NODE_FUNCTION_ALLOW_BUILTIN: "*"        # Code node me require('fs')
+      N8N_DIAGNOSTICS_ENABLED: "false"
+      N8N_VERSION_NOTIFICATIONS_ENABLED: "false"
+      ZERNIO_KEY: ${{ secrets.ZERNIO_KEY }}
+      PEXELS_KEY: ${{ secrets.PEXELS_KEY }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install ffmpeg
+        run: choco install ffmpeg -y --no-progress
+
+      - name: Check fonts
+        shell: powershell
+        run: |
+          foreach($f in 'impact','palai','georgiai','Inkfree','segoescb'){
+            $p = "C:\Windows\Fonts\$f.ttf"
+            "{0} -> {1}" -f $f, (Test-Path $p)
+          }
+
+      - name: Install n8n
+        run: npm install -g n8n@$env:N8N_VERSION
+
+      - name: Import credentials
+        env:
+          CREDENTIALS_JSON: ${{ secrets.CREDENTIALS_JSON }}
+        run: |
+          [IO.File]::WriteAllText("$PWD\creds.json", $env:CREDENTIALS_JSON)
+          n8n import:credentials --input=creds.json
+          Remove-Item creds.json
+
+      - name: Import workflow
+        run: |
+          node -e "const fs=require('fs');let j=JSON.parse(fs.readFileSync('workflow.json','utf8'));if(Array.isArray(j))j=j[0];j.id='carousel01';fs.writeFileSync('wf.json',JSON.stringify([j]))"
+          n8n import:workflow --input=wf.json
+
+      - name: Run carousel workflow
+        run: n8n execute --id carousel01
+
+      - name: Save slides if failed
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: carousel-debug
+          path: C:\carousel\run\*.jpg
+          retention-days: 3
+          if-no-files-found: ignore
