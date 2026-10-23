@@ -80,6 +80,10 @@ jobs:
         env:
           CREDENTIALS_JSON: ${{ secrets.CREDENTIALS_JSON }}
         run: |
+          if ([string]::IsNullOrWhiteSpace($env:CREDENTIALS_JSON)) {
+            Write-Host "::error::CREDENTIALS_JSON secret khali ya missing hai (naam check karein)"
+            exit 1
+          }
           [IO.File]::WriteAllText("$PWD\creds.json", $env:CREDENTIALS_JSON)
           n8n import:credentials --input=creds.json
           Remove-Item creds.json
