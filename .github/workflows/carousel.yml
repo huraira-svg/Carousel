@@ -91,7 +91,8 @@ jobs:
       - name: Import workflow
         timeout-minutes: 5
         run: |
-          node -e "const fs=require('fs');let j=JSON.parse(fs.readFileSync('workflow.json','utf8'));if(Array.isArray(j))j=j[0];j.id='carousel01';fs.writeFileSync('wf.json',JSON.stringify([j]))"
+          Get-ChildItem -Name *.json
+          node -e "const fs=require('fs');let f=process.env.WF_FILE;if(!f||!fs.existsSync(f)){f=fs.readdirSync('.').find(x=>x.endsWith('.json')&&x!=='package.json'&&x!=='package-lock.json'&&fs.readFileSync(x,'utf8').includes('nodes'))}if(!f)throw new Error('workflow json file repo me nahi mili');console.log('using: '+f);let j=JSON.parse(fs.readFileSync(f,'utf8'));if(Array.isArray(j))j=j[0];j.id='carousel01';fs.writeFileSync('wf.json',JSON.stringify([j]))"
           n8n import:workflow --input=wf.json
 
       - name: Run carousel workflow
