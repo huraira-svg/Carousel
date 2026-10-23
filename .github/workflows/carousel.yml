@@ -92,7 +92,37 @@ jobs:
         timeout-minutes: 5
         run: |
           Get-ChildItem -Name *.json
-          node -e "const fs=require('fs');let f=process.env.WF_FILE;if(!f||!fs.existsSync(f)){f=fs.readdirSync('.').find(x=>x.endsWith('.json')&&x!=='package.json'&&x!=='package-lock.json'&&fs.readFileSync(x,'utf8').includes('nodes'))}if(!f)throw new Error('workflow json file repo me nahi mili');console.log('using: '+f);let j=JSON.parse(fs.readFileSync(f,'utf8'));if(Array.isArray(j))j=j[0];j.id='carousel01';fs.writeFileSync('wf.json',JSON.stringify([j]))"
+          @'
+          const fs = require('fs');
+          let f = process.env.WF_FILE;
+          if (!f || !fs.existsSync(f)) {
+            f = fs.readdirSync('.').find(x => x.endsWith('.json')
+              && !['package.json', 'package-lock.json', 'wf.json', 'creds.json'].includes(x)
+              && fs.readFileSync(x, 'utf8').includes('nodes'));
+          }
+          if (!f) throw new Error('workflow json file repo me nahi mili');
+          console.log('using: ' + f);
+          let j = JSON.parse(fs.readFileSync(f, 'utf8'));
+          if (Array.isArray(j)) j = j[0];
+          j.id = 'carousel01';
+
+          // n8n execute ko Manual Trigger chahiye. Node ka naam same rakha taake connections na tootein.
+          const man = j.nodes.find(n => n.type === 'n8n-nodes-base.manualTrigger');
+          if (man) {
+            man.disabled = false;
+            console.log('Manual Trigger pehle se maujood: ' + man.name);
+          } else {
+            const t = j.nodes.find(n => /scheduleTrigger|cron|webhook|Trigger$/i.test(n.type));
+            if (!t) throw new Error('Workflow me koi trigger node nahi mila');
+            console.log('Trigger badla: ' + t.name + ' (' + t.type + ') -> manualTrigger');
+            t.type = 'n8n-nodes-base.manualTrigger';
+            t.typeVersion = 1;
+            t.parameters = {};
+            delete t.webhookId;
+          }
+          fs.writeFileSync('wf.json', JSON.stringify([j]));
+          '@ | Set-Content -Path fix_wf.js -Encoding utf8
+          node fix_wf.js
           n8n import:workflow --input=wf.json
 
       - name: Run carousel workflow
