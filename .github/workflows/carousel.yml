@@ -12,9 +12,10 @@ concurrency:
 jobs:
   run:
     runs-on: windows-latest
-    timeout-minutes: 45        # pehli run ke baad 25 kar sakte ho
+    timeout-minutes: 35        # pehli run ke baad 20 kar sakte ho
     env:
       N8N_VERSION: "1.80.0"                  # <- apne PC wala version (n8n --version)
+      N8N_DIR: 'D:\n8n'                      # D: drive C: se kaafi tez hai (install + cache restore)
       N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
       NODES_EXCLUDE: "[]"
       NODE_FUNCTION_ALLOW_BUILTIN: "*"
@@ -32,9 +33,12 @@ jobs:
 
       - name: Speed up (Defender off)
         shell: powershell
-        run: Set-MpPreference -DisableRealtimeMonitoring $true -ErrorAction SilentlyContinue
+        run: |
+          Set-MpPreference -DisableRealtimeMonitoring $true -ErrorAction SilentlyContinue
+          Add-MpPreference -ExclusionPath 'D:\','C:\Users','C:\carousel' -ErrorAction SilentlyContinue
 
       - name: Install ffmpeg
+        timeout-minutes: 10
         run: choco install ffmpeg -y --no-progress
 
       - name: Check fonts
@@ -47,26 +51,32 @@ jobs:
 
       - name: Restore n8n cache
         id: n8ncache
+        timeout-minutes: 8
         uses: actions/cache/restore@v4
         with:
-          path: C:\n8n
-          key: n8n-${{ env.N8N_VERSION }}-node22-win
+          path: D:\n8n
+          key: n8n-${{ env.N8N_VERSION }}-node22-win-d
 
       - name: Install n8n
         if: steps.n8ncache.outputs.cache-hit != 'true'
-        run: npm install --prefix C:\n8n n8n@${{ env.N8N_VERSION }} --no-audit --no-fund --loglevel=error
+        timeout-minutes: 15
+        run: |
+          npm config set progress false
+          npm install --prefix $env:N8N_DIR n8n@${{ env.N8N_VERSION }} --no-audit --no-fund --prefer-offline --loglevel=error
 
       - name: Save n8n cache
         if: steps.n8ncache.outputs.cache-hit != 'true'
+        timeout-minutes: 8
         uses: actions/cache/save@v4
         with:
-          path: C:\n8n
-          key: n8n-${{ env.N8N_VERSION }}-node22-win
+          path: D:\n8n
+          key: n8n-${{ env.N8N_VERSION }}-node22-win-d
 
       - name: Add n8n to PATH
-        run: echo "C:\n8n\node_modules\.bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+        run: echo "D:\n8n\node_modules\.bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - name: Import credentials
+        timeout-minutes: 5
         env:
           CREDENTIALS_JSON: ${{ secrets.CREDENTIALS_JSON }}
         run: |
@@ -75,11 +85,13 @@ jobs:
           Remove-Item creds.json
 
       - name: Import workflow
+        timeout-minutes: 5
         run: |
           node -e "const fs=require('fs');let j=JSON.parse(fs.readFileSync('workflow.json','utf8'));if(Array.isArray(j))j=j[0];j.id='carousel01';fs.writeFileSync('wf.json',JSON.stringify([j]))"
           n8n import:workflow --input=wf.json
 
       - name: Run carousel workflow
+        timeout-minutes: 20
         run: n8n execute --id carousel01
 
       - name: Save slides if failed
