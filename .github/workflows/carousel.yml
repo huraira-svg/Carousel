@@ -12,12 +12,12 @@ concurrency:
 jobs:
   run:
     runs-on: windows-latest
-    timeout-minutes: 25
+    timeout-minutes: 45        # pehli run ke baad 25 kar sakte ho
     env:
-      N8N_VERSION: "latest"            # <- apne PC wala version likho, jaise 1.80.0
-      N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"   # $env.ZERNIO_KEY kaam kare
-      NODES_EXCLUDE: "[]"                     # Execute Command node chalne do
-      NODE_FUNCTION_ALLOW_BUILTIN: "*"        # Code node me require('fs')
+      N8N_VERSION: "1.80.0"                  # <- apne PC wala version (n8n --version)
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
+      NODES_EXCLUDE: "[]"
+      NODE_FUNCTION_ALLOW_BUILTIN: "*"
       N8N_DIAGNOSTICS_ENABLED: "false"
       N8N_VERSION_NOTIFICATIONS_ENABLED: "false"
       ZERNIO_KEY: ${{ secrets.ZERNIO_KEY }}
@@ -30,6 +30,10 @@ jobs:
         with:
           node-version: 22
 
+      - name: Speed up (Defender off)
+        shell: powershell
+        run: Set-MpPreference -DisableRealtimeMonitoring $true -ErrorAction SilentlyContinue
+
       - name: Install ffmpeg
         run: choco install ffmpeg -y --no-progress
 
@@ -41,8 +45,26 @@ jobs:
             "{0} -> {1}" -f $f, (Test-Path $p)
           }
 
+      - name: Restore n8n cache
+        id: n8ncache
+        uses: actions/cache/restore@v4
+        with:
+          path: C:\n8n
+          key: n8n-${{ env.N8N_VERSION }}-node22-win
+
       - name: Install n8n
-        run: npm install -g n8n@$env:N8N_VERSION
+        if: steps.n8ncache.outputs.cache-hit != 'true'
+        run: npm install --prefix C:\n8n n8n@${{ env.N8N_VERSION }} --no-audit --no-fund --loglevel=error
+
+      - name: Save n8n cache
+        if: steps.n8ncache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: C:\n8n
+          key: n8n-${{ env.N8N_VERSION }}-node22-win
+
+      - name: Add n8n to PATH
+        run: echo "C:\n8n\node_modules\.bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - name: Import credentials
         env:
